@@ -1,0 +1,16 @@
+apiVersion: stream.nats.crossplane.io/v1alpha1
+kind: Stream
+metadata:
+  namespace: example
+  name: mystream2
+spec:
+  forProvider:
+    config:
+      name: foo2
+      subjects:
+        - bar.cheesekake.>
+      retention: Limits
+      storage: File
+      discard: DiscardOld
+  providerConfigRef:
+    name: default

@@ -1,14 +1,15 @@
 apiVersion: meta.pkg.crossplane.io/v1alpha1
 kind: Provider
 metadata:
-  name: provider-template
+  name: provider-nats
   annotations:
     meta.crossplane.io/maintainer: Crossplane Maintainers <info@crossplane.io>
-    meta.crossplane.io/source: github.com/crossplane/provider-template
+    meta.crossplane.io/source: github.com/edgefarm/provider-nats
     meta.crossplane.io/license: Apache-2.0
     meta.crossplane.io/description: |
-      A template that can be used to create Crossplane providers.
+      The NATS Crossplane provider adds support for
+      managing NATS resources like jetstreams in Kubernetes.
 
 spec:
   controller:
-    image: DOCKER_REGISTRY/provider-template-controller:VERSION
+    image: DOCKER_REGISTRY/provider-nats-controller:VERSION
