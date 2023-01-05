@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: leaf-nats-foo-config
+  namespace: nats
+data:
+  nats-server.conf: |-
+    {
+      "server_name": "foo"
+      "jetstream": {
+          "store_dir": "/store",
+          "domain": "foo",
+          "max_file": "100M",
+          "max_mem": "100M"
+      },
+      "http": 8222,
+      "leafnodes": {
+          "remotes": [
+          {
+              "url": "nats://nats.nats.svc:7422"
+              "credentials": "/creds/user.creds",
+          }
+          ]
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leaf-nats-foo
+  namespace: nats
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: leaf-nats-foo
+  template:
+    metadata:
+      labels:
+        app: leaf-nats-foo
+    spec:
+      containers:
+        - image: nats:2.9.11-alpine
+          imagePullPolicy: IfNotPresent
+          name: nats
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nats/
+              readOnly: true
+            - name: creds
+              mountPath: "/creds"
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: leaf-nats-foo-config
+        - name: creds
+          secret:
+            secretName: leaf-nats-foo-creds

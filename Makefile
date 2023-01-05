@@ -1,7 +1,7 @@
 # ====================================================================================
 # Setup Project
-PROJECT_NAME := provider-template
-PROJECT_REPO := github.com/crossplane/$(PROJECT_NAME)
+PROJECT_NAME := provider-nats
+PROJECT_REPO := github.com/edgefarm/$(PROJECT_NAME)
 
 PLATFORMS ?= linux_amd64 linux_arm64
 -include build/makelib/common.mk
@@ -71,9 +71,9 @@ dev: $(KIND) $(KUBECTL)
 	@$(KUBECTL) cluster-info --context kind-$(PROJECT_NAME)-dev
 	@$(INFO) Installing Crossplane CRDs
 	@$(KUBECTL) apply -k https://github.com/crossplane/crossplane//cluster?ref=master
-	@$(INFO) Installing Provider Template CRDs
+	@$(INFO) Installing Provider NATS CRDs
 	@$(KUBECTL) apply -R -f package/crds
-	@$(INFO) Starting Provider Template controllers
+	@$(INFO) Starting Provider NATS controllers
 	@$(GO) run cmd/provider/main.go --debug
 
 dev-clean: $(KIND) $(KUBECTL)
