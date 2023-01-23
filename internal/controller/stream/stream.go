@@ -221,10 +221,12 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	data, err := nats.StreamInfo(c.client, domain, externalName)
 	if err != nil {
+		r.SetConditions(xpv1.Unavailable().WithMessage(err.Error()))
 		return managed.ExternalObservation{}, err
 	}
 
 	if data == nil {
+		r.SetConditions(xpv1.Unavailable())
 		return managed.ExternalObservation{
 			ResourceExists: false,
 		}, nil
@@ -232,14 +234,13 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	customConfig := r.Spec.ForProvider.Config
 	converted, err := stream.ConfigV1Alpha1ToNats(&customConfig)
-
-	converted.Name = externalName
 	if err != nil {
-		r.SetConditions(xpv1.Unavailable().WithMessage(err.Error()))
 		return managed.ExternalObservation{
 			ResourceExists: false,
-		}, nil
+		}, err
 	}
+
+	converted.Name = externalName
 
 	oriJson, err := json.Marshal(data.Config)
 	if err != nil {

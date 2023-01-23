@@ -27,6 +27,19 @@ type Client struct {
 	UserPublicKey string
 }
 
+func GetUserPublicKey(seed string) (string, error) {
+	user, err := nkeys.FromSeed([]byte(seed))
+	if err != nil {
+		return "", err
+	}
+
+	pub, err := user.PublicKey()
+	if err != nil {
+		return "", err
+	}
+	return pub, nil
+}
+
 func NewClient(creds []byte) (*Client, error) {
 	var config Config
 	if err := jsonutil.DecodeJSON(creds, &config); err != nil {
@@ -42,12 +55,7 @@ func NewClient(creds []byte) (*Client, error) {
 		return nil, err
 	}
 
-	user, err := nkeys.FromSeed([]byte(config.SeedKey))
-	if err != nil {
-		return nil, err
-	}
-
-	pub, err := user.PublicKey()
+	pub, err := GetUserPublicKey(config.SeedKey)
 	if err != nil {
 		return nil, err
 	}
@@ -62,47 +70,3 @@ func (c *Client) Disconnect() error {
 	c.conn.Close()
 	return nil
 }
-
-// var (
-// 	ErrNatsConfig = errors.New("secret does not contain a valid nats configuration")
-// 	once          sync.Once
-// 	conn          *nats.Conn
-// 	mutex         sync.Mutex
-// )
-
-// type Config struct {
-// 	// JWT is the NATS users JWT token to use for authentication.
-// 	JWT string `json:"jwt"`
-// 	// SeedKey is the NATS users seed key to use for authentication.
-// 	SeedKey string `json:"seed_key"`
-// 	// Address is the NATS address to use for authentication.
-// 	Address string `json:"address"`
-// }
-
-// type Client struct {
-// 	conn *natsgo.Conn
-// }
-
-// func NewClient(creds []byte) (*Client, error) {
-// 	var clientErr error
-// 	once.Do(func() {
-// 		mutex.Lock()
-// 		var config Config
-// 		if err := jsonutil.DecodeJSON(creds, &config); err != nil {
-// 			clientErr = err
-// 		}
-
-// 		if config.JWT == "" || config.SeedKey == "" || config.Address == "" {
-// 			clientErr = ErrNatsConfig
-// 		}
-
-// 		c, err := natsgo.Connect(config.Address, natsgo.UserJWTAndSeed(config.JWT, config.SeedKey))
-// 		if err != nil {
-// 			clientErr = err
-// 		}
-// 		conn = c
-// 		mutex.Unlock()
-// 	})
-// 	return &Client{
-// 		conn: conn,
-// 	}, clientErr
