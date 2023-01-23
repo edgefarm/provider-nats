@@ -13,3 +13,6 @@ metadata:
 spec:
   controller:
     image: DOCKER_REGISTRY/provider-nats-controller:VERSION
+# spec:
+#   controller:
+#     image: ghcr.io/edgefarm/provider-nats-controller:VERSION

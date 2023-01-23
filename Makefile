@@ -19,8 +19,8 @@ GO111MODULE = on
 -include build/makelib/golang.mk
 
 # kind-related versions
-KIND_VERSION ?= v0.12.0
-KIND_NODE_IMAGE_TAG ?= v1.23.4
+KIND_VERSION ?= v0.17.0
+KIND_NODE_IMAGE_TAG ?= v1.24.7
 
 # Setup Kubernetes tools
 -include build/makelib/k8s_tools.mk
@@ -38,9 +38,9 @@ fallthrough: submodules
 e2e.run: test-integration
 
 # Run integration tests.
-test-integration: $(KIND) $(KUBECTL) $(UP) $(HELM3)
+test-integration: generate build $(KIND) $(KUBECTL) $(UP) $(HELM3)
 	@$(INFO) running integration tests using kind $(KIND_VERSION)
-	@KIND_NODE_IMAGE_TAG=${KIND_NODE_IMAGE_TAG} $(ROOT_DIR)/cluster/local/integration_tests.sh || $(FAIL)
+	@KIND_NODE_IMAGE_TAG=${KIND_NODE_IMAGE_TAG} $(ROOT_DIR)/cluster/local/integration_tests.sh ${E2E_DEV} || $(FAIL)
 	@$(OK) integration tests passed
 
 # Update the submodules, such as the common build scripts.

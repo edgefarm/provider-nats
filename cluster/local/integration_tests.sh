@@ -33,6 +33,24 @@ echo_error(){
 }
 
 
+testcase1() {
+      echo_step "Testcase 1: Deploy jetstream resource to main cluster"
+}
+
+
+testcase2() {
+      echo_step "Testcase 2: Deploy jetstream resource to domain foo"
+
+}
+
+testcase3() {
+      echo_step "Testcase 2: Deploy jetstream resource to domain bar"
+}
+
+testcase4() {
+      echo_step "Testcase 2: Deploy jetstream resource to domain foo"
+}
+
 # The name of your provider. Many provider Makefiles override this value.
 PACKAGE_NAME="provider-nats"
 
@@ -44,7 +62,9 @@ projectdir="$( cd "$( dirname "${BASH_SOURCE[0]}")"/../.. && pwd )"
 eval $(make --no-print-directory -C ${projectdir} build.vars)
 
 # ------------------------------
-
+E2E_DEV="${E2E_DEV:-false}"
+E2E_SKIP_TESTS="${E2E_SKIP_TESTS:-false}"
+KUBECONFIG_PATH="${projectdir}/.work/kubeconfig/"
 SAFEHOSTARCH="${SAFEHOSTARCH:-amd64}"
 BUILD_IMAGE="${BUILD_REGISTRY}/${PROJECT_NAME}-${SAFEHOSTARCH}"
 PACKAGE_IMAGE="crossplane.io/inttests/${PROJECT_NAME}:${VERSION}"
@@ -57,10 +77,24 @@ K8S_CLUSTER="${K8S_CLUSTER:-${BUILD_REGISTRY}-inttests}"
 
 CROSSPLANE_NAMESPACE="crossplane-system"
 
+skipuninstall=true
+skipcleanup=false
+
+if [ "$E2E_SKIP_TESTS" == "true" ]; then
+  echo_info "Skipping tests"
+fi
+
+if [ "$E2E_DEV" == "true" ]; then
+  echo_info "Running in dev mode"
+  skipuninstall=true
+  skipcleanup=true
+fi
+
 # cleanup on exit
 if [ "$skipcleanup" != true ]; then
   function cleanup {
     echo_step "Cleaning up..."
+    rm -rf ${KUBECONFIG_PATH}
     export KUBECONFIG=
     "${KIND}" delete cluster --name="${K8S_CLUSTER}"
   }
@@ -90,6 +124,12 @@ nodes:
 EOF
 )"
 echo "${KIND_CONFIG}" | "${KIND}" create cluster --name="${K8S_CLUSTER}" --wait=5m --image="${KIND_NODE_IMAGE}" --config=-
+
+# export kubeconfig
+mkdir -p ${KUBECONFIG_PATH}
+"${KIND}" get kubeconfig --name="${K8S_CLUSTER}" > ${KUBECONFIG_PATH}/kubeconfig
+chmod go-r ${KUBECONFIG_PATH}/kubeconfig
+export KUBECONFIG=${KUBECONFIG_PATH}/kubeconfig
 
 # tag controller image and load it into kind cluster
 docker tag "${CONTROLLER_IMAGE}" "${PACKAGE_CONTROLLER_IMAGE}"
@@ -173,21 +213,42 @@ echo_step "waiting for provider to be installed"
 
 kubectl wait "provider.pkg.crossplane.io/${PACKAGE_NAME}" --for=condition=healthy --timeout=180s
 
-echo_step "uninstalling ${PROJECT_NAME}"
+# ----------- e2e test dependencies
+echo_step "--- DEPLOY E2E TEST DEPENDENCIES ---"
 
-echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -
+echo_step "Deploy main nats server"
+( cd ${projectdir}/cluster/local/config/main-nats ; ./create.sh )
+echo_step "Provision nats credentials"
+( cd ${projectdir}/cluster/local/config/nsc ; ./create.sh )
+echo_step "Deploy leaf-nats servers"
+( cd ${projectdir}/cluster/local/config/leaf-nats ; ./create.sh )
 
-# check pods deleted
-timeout=60
-current=0
-step=3
-while [[ $(kubectl get providerrevision.pkg.crossplane.io -o name | wc -l) != "0" ]]; do
-  echo "waiting for provider to be deleted for another $step seconds"
-  current=$current+$step
-  if ! [[ $timeout > $current ]]; then
-    echo_error "timeout of ${timeout}s has been reached"
-  fi
-  sleep $step;
-done
+( cd ${projectdir}/cluster/local/e2e/pkg/stream/manifests/ ; kubectl apply -f providerconfig )
+
+# ----------- e2e tests
+echo_step "--- E2E TESTS ---"
+
+if [ "$E2E_SKIP_TESTS" == false ]; then
+  ( cd ${projectdir}/cluster/local/e2e ; go test )
+fi
+
+if [ "$skipuninstall" != true ]; then
+  echo_step "uninstalling ${PROJECT_NAME}"
+
+  echo "${INSTALL_YAML}" | "${KUBECTL}" delete -f -
+
+  # check pods deleted
+  timeout=60
+  current=0
+  step=3
+  while [[ $(kubectl get providerrevision.pkg.crossplane.io -o name | wc -l) != "0" ]]; do
+    echo "waiting for provider to be deleted for another $step seconds"
+    current=$current+$step
+    if ! [[ $timeout > $current ]]; then
+      echo_error "timeout of ${timeout}s has been reached"
+    fi
+    sleep $step;
+  done
+fi
 
 echo_success "Integration tests succeeded!"

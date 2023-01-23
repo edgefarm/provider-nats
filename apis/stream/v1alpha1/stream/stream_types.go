@@ -29,8 +29,7 @@ type StreamConfig struct {
 	Description string `json:"description,omitempty"`
 
 	// Subjects is a list of subjects to consume, supports wildcards.
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Optional
 	Subjects []string `json:"subjects"`
 
 	// Retention defines the retention policy for the stream.

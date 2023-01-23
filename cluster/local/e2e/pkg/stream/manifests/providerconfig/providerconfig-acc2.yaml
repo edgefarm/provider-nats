@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: crossplane-system
+  name: acc2-creds
+type: Opaque
+data:
+  credentials: ew0KICAiand0IjogImV5SjBlWEFpT2lKS1YxUWlMQ0poYkdjaU9pSmxaREkxTlRFNUxXNXJaWGtpZlEuZXlKcWRHa2lPaUpLVTBVeVdqUk5RMFJJVWxkWlRWVlZTMHRhUzFRMVZUTTJTazR5VkRkV1VrcFlSMVJYVmt0R00xWkVSMUpXVjBVMVdrUkJJaXdpYVdGMElqb3hOamN6T0RjeU5qRXdMQ0pwYzNNaU9pSkJRMU5KVEVoTVNsbzFRVll6VEZaTFFVWlZSVFpSUjBJM1VUSlhORXRQUnpWWFUxcExVa2hDVmtWVFZVdEdNamN6VVZNMlVsaFRWeUlzSW01aGJXVWlPaUoxYzJWeUlpd2ljM1ZpSWpvaVZVSTJVMUJDU1U1VE5sZ3lURFl5TWtkUFNqUkRUVXhZTnpRMU1rSlRWRWxYTlVoUFdGUTNORTVDUkVGT01raEVRMU5RTTBnMlNVRWlMQ0p1WVhSeklqcDdJbkIxWWlJNmUzMHNJbk4xWWlJNmUzMHNJbk4xWW5NaU9pMHhMQ0prWVhSaElqb3RNU3dpY0dGNWJHOWhaQ0k2TFRFc0luUjVjR1VpT2lKMWMyVnlJaXdpZG1WeWMybHZiaUk2TW4xOS50aHFnWi1JRnpuWGdMajF0NHYyZDcwMFdmazE1MUVTMVRKSTNSS2tUTHd3TzN6NGhEbXNVVVVpV1RFdmtLM1J0R2JrQ0ppVXB4WFF0NlNidXpUMS1DZyIsDQogICJzZWVkX2tleSI6ICJTVUFJQkxST0ZSTlRaM0VUQkRaQ1o0QUlGVFdUQjVNNjVZRlJYTFRGQ0RUNkcyUk9HU1RVRjI3RFpRIiwNCiAgImFkZHJlc3MiOiAibmF0czovL25hdHMubmF0cy5zdmM6NDIyMiINCn0=
+---
+apiVersion: nats.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: acc2
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: acc2-creds
+      key: credentials

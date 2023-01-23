@@ -1,0 +1,15 @@
+The secret format of the provider is a JSON object with the following fields.
+
+- jwt: the NATS user's JWT
+- seed_key: the NATS user's seed key
+- address: the address of the NATS server
+
+Example:
+
+```json
+{
+  "jwt": "eyJ0eXAiOiJKV1QiLCJhbGciOiJlZDI1NTE5LW5rZXkifQ.eyJqdGkiOiJCRjRQQklGWkVLRlpGV0RPMzI2WFpLU0lWNlhPM0dSQllRNUJSMlNXNEhRVEJDTVRLUlhRIiwiaWF0IjoxNjczODcyNjA5LCJpc3MiOiJBRE9HWFU1VTM0TTNPRjdGUlNIRUZPSk5EMjIzWkVHSUVPN0o3NlBUUDRWNlNFU1RMMkpBTFU0VSIsIm5hbWUiOiJ1c2VyIiwic3ViIjoiVUJXSERWN0I3MzNINTZORFgzUVFBS0tVSkE3Rk9XSU5LWkFJQzdDSFYzUlVYSUpRTURHNUZVRkgiLCJuYXRzIjp7InB1YiI6e30sInN1YiI6e30sInN1YnMiOi0xLCJkYXRhIjotMSwicGF5bG9hZCI6LTEsInR5cGUiOiJ1c2VyIiwidmVyc2lvbiI6Mn19.U2SWCmVZ23uOWJ93QDsFsIV0jQPpGEeugrczyWA3MCzPRWDhjmXtirwHt9ma07In8pxmI7VdL-tLWirrP3XuDg",
+  "seed_key": "SUAK7T73VGRNIXTPBZ3FDV23QFR446Z3EIBEFKIR4ANHDL3ZW4JS5MGFJQ",
+  "address": "nats://nats.nats.svc:4222"
+}
+```
