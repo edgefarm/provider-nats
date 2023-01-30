@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nsc
+  namespace: nats
+  labels:
+    app: nsc
+spec:
+  template:
+    spec:
+      containers:
+        - name: nsc
+          image: natsio/nats-box:0.13.4
+          command:
+            - sh
+          args:
+            - -c
+            - "base64 -d /raw/nsc.tar.gz.base64 > /nsc.tar.gz && tar xfz /nsc.tar.gz && nsc push --system-account SYS -A -u nats://nats.nats.svc:4222 --config-dir /nsc/accounts --data-dir /nsc/accounts/nats --keystore-dir /nsc/nkeys"
+          workingDir: /
+          volumeMounts:
+            - name: nsc
+              mountPath: /raw
+      restartPolicy: Never
+      volumes:
+        - name: nsc
+          secret:
+            secretName: nsc
+            optional: false
+  backoffLimit: 1

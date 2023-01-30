@@ -32,6 +32,7 @@ type StreamParameters struct {
 	// Domain is the Jetstream domain in which the stream is created.
 	// +kubebuilder:validation:Optional
 	Domain string `json:"domain,omitempty"`
+
 	// Config is the stream configuration.
 	Config stream.StreamConfig `json:"config"`
 }
@@ -64,6 +65,7 @@ type StreamStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:object:generate=true
 // +genclient
 // +genclient:nonNamespaced
 
@@ -74,10 +76,10 @@ type StreamStatus struct {
 // +kubebuilder:printcolumn:name="DOMAIN",type="string",JSONPath=".spec.forProvider.domain"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="ADDRESS",type="string",priority=1,JSONPath=".status.atProvider.connection.address"
-// +kubebuilder:printcolumn:name="USER PUB KEY",type="string",priority=1,JSONPath=".status.atProvider.connection.publicKey"
+// +kubebuilder:printcolumn:name="ACCOUNT PUB KEY",type="string",priority=1,JSONPath=".status.atProvider.connection.accountPublicKey"
 // +kubebuilder:printcolumn:name="MESSAGES",type="string",priority=1,JSONPath=".status.atProvider.state.messages"
 // +kubebuilder:printcolumn:name="BYTES",type="string",priority=1,JSONPath=".status.atProvider.state.bytes"
-// +kubebuilder:printcolumn:name="CONSUMERS",type="string",priority=1,JSONPath=".status.atProvider.state.consumers"
+// +kubebuilder:printcolumn:name="CONSUMERS",type="string",priority=1,JSONPath=".status.atProvider.state.consumerCount"
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,nats}
 type Stream struct {

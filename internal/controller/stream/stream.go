@@ -32,6 +32,7 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
+	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
@@ -43,6 +44,7 @@ import (
 	apisv1alpha1 "github.com/edgefarm/provider-nats/apis/v1alpha1"
 	nats "github.com/edgefarm/provider-nats/internal/clients/nats"
 	"github.com/edgefarm/provider-nats/internal/controller/features"
+	"github.com/edgefarm/provider-nats/internal/convert"
 )
 
 const (
@@ -67,6 +69,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 		kube:         mgr.GetClient(),
 		usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 		newServiceFn: nats.NewClient,
+		logger:       o.Logger,
 	}
 	r := managed.NewReconciler(mgr,
 		resource.ManagedKind(v1alpha1.StreamGroupVersionKind),
@@ -91,6 +94,7 @@ type connector struct {
 	usage        resource.Tracker
 	newServiceFn func(creds []byte) (*nats.Client, error)
 	client       *nats.Client
+	logger       logging.Logger
 }
 
 // Disconnect implements managed.ExternalConnectDisconnecter
@@ -133,6 +137,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	e := &external{
 		client:          client,
 		clientCloseChan: make(chan struct{}),
+		log:             c.logger,
 	}
 
 	return e, nil
@@ -145,6 +150,7 @@ type external struct {
 	// would be something like an AWS SDK client.
 	client          *nats.Client
 	clientCloseChan chan struct{}
+	log             logging.Logger
 }
 
 func (c *external) Disconnect(ctx context.Context) error {
@@ -169,7 +175,8 @@ func (c *external) setStatus(domain string, r *v1alpha1.Stream, data *natsgo.Str
 	r.Status.AtProvider.Domain = domain
 	// Update connection details
 	r.Status.AtProvider.Connection.Address = c.client.Address
-	r.Status.AtProvider.Connection.PublicKey = c.client.UserPublicKey
+	r.Status.AtProvider.Connection.UserPublicKey = c.client.UserPublicKey
+	r.Status.AtProvider.Connection.AccountPublicKey = c.client.AccountPublicKey
 
 	// Update status information for stream info
 	r.Status.AtProvider.State.Bytes = humanize.Bytes(data.State.Bytes)
@@ -181,12 +188,12 @@ func (c *external) setStatus(domain string, r *v1alpha1.Stream, data *natsgo.Str
 	r.Status.AtProvider.State.Deleted = data.State.Deleted
 	r.Status.AtProvider.State.NumDeleted = data.State.NumDeleted
 	r.Status.AtProvider.State.Subjects = data.State.Subjects
-	statusFirstTimeStamp, err := stream.TimeToRFC3339(&data.State.FirstTime)
+	statusFirstTimeStamp, err := convert.TimeToRFC3339(&data.State.FirstTime)
 	if err != nil {
 		return err
 	}
 	r.Status.AtProvider.State.FirstTimestamp = statusFirstTimeStamp
-	statusLastTimeStamp, err := stream.TimeToRFC3339(&data.State.LastTime)
+	statusLastTimeStamp, err := convert.TimeToRFC3339(&data.State.LastTime)
 	if err != nil {
 		return err
 	}
@@ -233,7 +240,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 
 	customConfig := r.Spec.ForProvider.Config
-	converted, err := stream.ConfigV1Alpha1ToNats(&customConfig)
+	converted, err := stream.ConfigV1Alpha1ToNats(externalName, &customConfig)
 	if err != nil {
 		return managed.ExternalObservation{
 			ResourceExists: false,
@@ -288,7 +295,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotStream)
 	}
-	fmt.Printf("Creating: %+v", r)
+	c.log.Info("Creating", "stream", r)
 
 	customConfig := r.Spec.ForProvider.Config
 	domain := r.Spec.ForProvider.Domain
@@ -296,16 +303,13 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
-	// externalname := names.SimpleNameGenerator.GenerateName(externalName)
-	// err = setExternalname(ctx, r, externalname)
-	config, err := stream.ConfigV1Alpha1ToNats(&customConfig)
+	config, err := stream.ConfigV1Alpha1ToNats(externalName, &customConfig)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
 	config.Name = externalName
-	fmt.Println(config.Name)
 
-	err = c.client.Create(domain, config)
+	err = c.client.CreateStream(domain, config)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -322,21 +326,19 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotStream)
 	}
-
-	fmt.Printf("Updating: %+v", r)
-
+	c.log.Info("Updating", "stream", r)
 	customConfig := r.Spec.ForProvider.Config
 	domain := r.Spec.ForProvider.Domain
 	externalName, err := getExternalName(r)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
-	config, err := stream.ConfigV1Alpha1ToNats(&customConfig)
+	config, err := stream.ConfigV1Alpha1ToNats(externalName, &customConfig)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
 	config.Name = externalName
-	err = c.client.Update(domain, config)
+	err = c.client.UpdateStream(domain, config)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
@@ -353,14 +355,12 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	if !ok {
 		return errors.New(errNotStream)
 	}
-
-	fmt.Printf("Deleting: %+v", r)
-
+	c.log.Info("Deleting", "stream", r)
 	domain := r.Spec.ForProvider.Domain
 	externalName, err := getExternalName(r)
 	if err != nil {
 		return err
 	}
 
-	return c.client.Delete(domain, externalName)
+	return c.client.DeleteStream(domain, externalName)
 }

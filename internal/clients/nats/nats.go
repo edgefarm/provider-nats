@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/hashicorp/vault/sdk/helper/jsonutil"
+	natsjwt "github.com/nats-io/jwt/v2"
 	natsgo "github.com/nats-io/nats.go"
-	"github.com/nats-io/nkeys"
 )
 
 var (
@@ -22,22 +22,18 @@ type Config struct {
 }
 
 type Client struct {
-	conn          *natsgo.Conn
-	Address       string
-	UserPublicKey string
+	conn             *natsgo.Conn
+	Address          string
+	UserPublicKey    string
+	AccountPublicKey string
 }
 
-func GetUserPublicKey(seed string) (string, error) {
-	user, err := nkeys.FromSeed([]byte(seed))
+func GetPublicKeys(jwt string) (string, string, error) {
+	c, err := natsjwt.DecodeUserClaims(jwt)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-
-	pub, err := user.PublicKey()
-	if err != nil {
-		return "", err
-	}
-	return pub, nil
+	return c.Issuer, c.Subject, nil
 }
 
 func NewClient(creds []byte) (*Client, error) {
@@ -55,14 +51,15 @@ func NewClient(creds []byte) (*Client, error) {
 		return nil, err
 	}
 
-	pub, err := GetUserPublicKey(config.SeedKey)
+	accountPub, userPub, err := GetPublicKeys(config.JWT)
 	if err != nil {
 		return nil, err
 	}
 	return &Client{
-		conn:          c,
-		Address:       config.Address,
-		UserPublicKey: pub,
+		conn:             c,
+		Address:          config.Address,
+		UserPublicKey:    userPub,
+		AccountPublicKey: accountPub,
 	}, nil
 }
 

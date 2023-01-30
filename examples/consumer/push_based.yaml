@@ -1,0 +1,12 @@
+apiVersion: nats.crossplane.io/v1alpha1
+kind: Consumer
+metadata:
+  name: push
+spec:
+  forProvider:
+    stream: mystream
+    config:
+      push:
+        deliverSubject: push
+  providerConfigRef:
+    name: default

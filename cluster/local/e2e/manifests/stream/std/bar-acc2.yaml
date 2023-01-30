@@ -1,0 +1,16 @@
+apiVersion: nats.crossplane.io/v1alpha1
+kind: Stream
+metadata:
+  name: bar-acc2
+spec:
+  forProvider:
+    domain: bar
+    config:
+      subjects:
+        - bar.>
+      retention: Limits
+      storage: File
+      maxBytes: 102400
+      discard: Old
+  providerConfigRef:
+    name: acc2

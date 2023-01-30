@@ -3,12 +3,9 @@ package stream_test
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
 
 	v1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
-	"github.com/ghodss/yaml"
+	natsgo "github.com/nats-io/nats.go"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -19,27 +16,6 @@ import (
 	utils "github.com/edgefarm/provider-nats/cluster/local/e2e/pkg/utils"
 	"github.com/edgefarm/provider-nats/internal/clients/nats"
 )
-
-func unmarshalStreamYaml[T any](path string, out *T) (*T, error) {
-	jsonFile, err := os.Open(filepath.Clean(path))
-	if err != nil {
-		return nil, err
-	}
-	err = jsonFile.Close()
-	if err != nil {
-		return nil, err
-	}
-	byteValue, _ := io.ReadAll(jsonFile)
-	j, err := yaml.YAMLToJSON(byteValue)
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(j, out)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
 //nolint:unparam
 func userCreds(f *utils.Framework, secret string) (string, string, string, error) {
@@ -60,26 +36,26 @@ func userCreds(f *utils.Framework, secret string) (string, string, string, error
 	return x["jwt"].(string), x["seed_key"].(string), x["address"].(string), nil
 }
 
-func userPubKey(f *utils.Framework, secret string) (string, error) {
+func pubKey(f *utils.Framework, secret string) (string, string, error) {
 	acc, err := f.GetSecret("crossplane-system", secret)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	var x map[string]interface{}
 	j, ok := acc["credentials"]
 	if !ok {
-		return "", fmt.Errorf("credentials not found in secret")
+		return "", "", fmt.Errorf("credentials not found in secret")
 	}
 	err = json.Unmarshal(j, &x)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	fmt.Fprintf(GinkgoWriter, "x: %+v", x)
-	pub, err := nats.GetUserPublicKey(x["seed_key"].(string))
+	apub, upub, err := nats.GetPublicKeys(x["jwt"].(string))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return pub, nil
+	return apub, upub, nil
 }
 
 var _ = Describe("Stream E2E tests", func() {
@@ -94,11 +70,11 @@ var _ = Describe("Stream E2E tests", func() {
 			It("can create the stream", func() {
 				stream := &streamsv1.Stream{}
 				stream.Spec.ForProvider.Config.SetDefaults()
-				stream, err := unmarshalStreamYaml("pkg/stream/manifests/stream/std/main-acc1.yaml", stream)
+				stream, err := utils.UnmarshalAnyYaml("manifests/stream/std/main-acc1.yaml", stream)
 				Expect(err).To(BeNil())
-				err = f.CreateStream(stream)
+				err = f.CreateOrLeaveStream(stream)
 				Expect(err).To(BeNil())
-				err = f.WaitForStreamSyncAndReady(stream.Spec.ForProvider.Config.Name)
+				err = f.WaitForStreamSyncAndReady(stream.ObjectMeta.Name)
 				Expect(err).To(BeNil())
 			})
 			It("can update the stream", func() {
@@ -106,33 +82,33 @@ var _ = Describe("Stream E2E tests", func() {
 				Expect(err).To(BeNil())
 				streamNew := streamOld.DeepCopy()
 				streamNew.Spec.ForProvider.Config.MaxBytes = 402400
-				streamNew.Spec.ForProvider.Config.Discard = "DiscardNew"
+				streamNew.Spec.ForProvider.Config.Discard = "New"
 				err = f.UpdateStream(streamNew)
 				Expect(err).To(BeNil())
-				err = f.WaitForStreamSyncAndReady(streamNew.Spec.ForProvider.Config.Name)
+				err = f.WaitForStreamSyncAndReady(streamNew.ObjectMeta.Name)
 				Expect(err).To(BeNil())
 
 				Expect(streamOld.Spec.ForProvider.Config.MaxBytes).Should(BeIdenticalTo(int64(102400)))
 				Expect(streamNew.Spec.ForProvider.Config.MaxBytes).Should(BeIdenticalTo(int64(402400)))
-				Expect(streamOld.Spec.ForProvider.Config.Discard).Should(BeIdenticalTo("DiscardOld"))
-				Expect(streamNew.Spec.ForProvider.Config.Discard).Should(BeIdenticalTo("DiscardNew"))
+				Expect(streamOld.Spec.ForProvider.Config.Discard).Should(BeIdenticalTo("Old"))
+				Expect(streamNew.Spec.ForProvider.Config.Discard).Should(BeIdenticalTo("New"))
 			})
 		})
 		Context("Stream main-acc2", func() {
 			It("should succeed on creating main-acc2 for the first time", func() {
 				stream := &streamsv1.Stream{}
 				stream.Spec.ForProvider.Config.SetDefaults()
-				stream, err := unmarshalStreamYaml("pkg/stream/manifests/stream/std/main-acc2.yaml", stream)
+				stream, err := utils.UnmarshalAnyYaml("manifests/stream/std/main-acc2.yaml", stream)
 				Expect(err).To(BeNil())
 				err = f.CreateStream(stream)
 				Expect(err).To(BeNil())
-				err = f.WaitForStreamSyncAndReady(stream.Spec.ForProvider.Config.Name)
+				err = f.WaitForStreamSyncAndReady(stream.ObjectMeta.Name)
 				Expect(err).To(BeNil())
 			})
 			It("should fail creating main-acc2 on the second time", func() {
 				stream := &streamsv1.Stream{}
 				stream.Spec.ForProvider.Config.SetDefaults()
-				stream, err := unmarshalStreamYaml("pkg/stream/manifests/stream/std/main-acc2.yaml", stream)
+				stream, err := utils.UnmarshalAnyYaml("manifests/stream/std/main-acc2.yaml", stream)
 				Expect(err).To(BeNil())
 				err = f.CreateStream(stream)
 				Expect(kerrors.IsAlreadyExists(err)).To(BeTrue())
@@ -144,22 +120,28 @@ var _ = Describe("Stream E2E tests", func() {
 				Expect(err).To(BeNil())
 				Expect(domain).Should(Equal(""))
 
-				userPubKey, err := userPubKey(f, "acc1-creds")
+				accountPubKey, userPubKey, err := pubKey(f, "acc1-creds")
 				Expect(err).To(BeNil())
 				acc1UserPubKey, err := f.GetStreamUserPublicKey("main-acc1")
 				Expect(err).To(BeNil())
 				Expect(acc1UserPubKey).Should(Equal(userPubKey))
+				acc1PubKey, err := f.GetStreamAccountPublicKey("main-acc1")
+				Expect(err).To(BeNil())
+				Expect(acc1PubKey).Should(Equal(accountPubKey))
 			})
 			It("can validate for main-acc2", func() {
 				domain, err := f.GetStreamDomain("main-acc2")
 				Expect(err).To(BeNil())
 				Expect(domain).Should(Equal(""))
 
-				userPubKey, err := userPubKey(f, "acc2-creds")
+				accountPubKey, userPubKey, err := pubKey(f, "acc2-creds")
 				Expect(err).To(BeNil())
 				acc1UserPubKey, err := f.GetStreamUserPublicKey("main-acc2")
 				Expect(err).To(BeNil())
 				Expect(acc1UserPubKey).Should(Equal(userPubKey))
+				acc1PubKey, err := f.GetStreamAccountPublicKey("main-acc2")
+				Expect(err).To(BeNil())
+				Expect(acc1PubKey).Should(Equal(accountPubKey))
 			})
 		})
 		Context("Delete streams", func() {
@@ -188,33 +170,33 @@ var _ = Describe("Stream E2E tests", func() {
 			It("can create the stream for domain foo", func() {
 				stream := &streamsv1.Stream{}
 				stream.Spec.ForProvider.Config.SetDefaults()
-				stream, err := unmarshalStreamYaml("pkg/stream/manifests/stream/std/foo-acc1.yaml", stream)
+				stream, err := utils.UnmarshalAnyYaml("manifests/stream/std/foo-acc1.yaml", stream)
 				Expect(err).To(BeNil())
 				err = f.CreateStream(stream)
 				Expect(err).To(BeNil())
-				err = f.WaitForStreamSyncAndReady(stream.Spec.ForProvider.Config.Name)
+				err = f.WaitForStreamSyncAndReady(stream.ObjectMeta.Name)
 				Expect(err).To(BeNil())
 			})
 			It("can create the stream for domain bar", func() {
 				stream := &streamsv1.Stream{}
 				stream.Spec.ForProvider.Config.SetDefaults()
-				stream, err := unmarshalStreamYaml("pkg/stream/manifests/stream/std/bar-acc2.yaml", stream)
+				stream, err := utils.UnmarshalAnyYaml("manifests/stream/std/bar-acc2.yaml", stream)
 				Expect(err).To(BeNil())
 				err = f.CreateStream(stream)
 				Expect(err).To(BeNil())
-				err = f.WaitForStreamSyncAndReady(stream.Spec.ForProvider.Config.Name)
+				err = f.WaitForStreamSyncAndReady(stream.ObjectMeta.Name)
 				Expect(err).To(BeNil())
 			})
 			It("can't create the stream for domain baz", func() {
 				stream := &streamsv1.Stream{}
 				stream.Spec.ForProvider.Config.SetDefaults()
-				stream, err := unmarshalStreamYaml("pkg/stream/manifests/stream/std/baz-acc1.yaml", stream)
+				stream, err := utils.UnmarshalAnyYaml("manifests/stream/std/baz-acc1.yaml", stream)
 				Expect(err).To(BeNil())
 				err = f.CreateStream(stream)
 				Expect(err).To(BeNil())
-				err = f.WaitForStreamConditionsAvailable(stream.Spec.ForProvider.Config.Name, 2)
+				err = f.WaitForStreamConditionsAvailable(stream.ObjectMeta.Name, 2)
 				Expect(err).To(BeNil())
-				current, err := f.GetStream(stream.Spec.ForProvider.Config.Name)
+				current, err := f.GetStream(stream.ObjectMeta.Name)
 				conditionTime := current.Status.Conditions[0].LastTransitionTime
 				Expect(err).To(BeNil())
 				Expect(v1.Condition{
@@ -222,14 +204,7 @@ var _ = Describe("Stream E2E tests", func() {
 					Status:             corev1.ConditionFalse,
 					LastTransitionTime: conditionTime,
 					Reason:             v1.ReasonUnavailable,
-					Message:            "nats: no responders available for request",
-				}).Should(BeElementOf(current.Status.Conditions))
-				Expect(v1.Condition{
-					Type:               v1.TypeReady,
-					Status:             corev1.ConditionFalse,
-					LastTransitionTime: conditionTime,
-					Reason:             v1.ReasonUnavailable,
-					Message:            "nats: no responders available for request",
+					Message:            natsgo.ErrNoResponders.Error(),
 				}).Should(BeElementOf(current.Status.Conditions))
 			})
 		})
@@ -265,14 +240,14 @@ var _ = Describe("Stream E2E tests", func() {
 			It("can create the leaf node streams", func() {
 				streamFoo := &streamsv1.Stream{}
 				streamFoo.Spec.ForProvider.Config.SetDefaults()
-				streamFoo, err := unmarshalStreamYaml("pkg/stream/manifests/stream/aggregate/source_foo.yaml", streamFoo)
+				streamFoo, err := utils.UnmarshalAnyYaml("manifests/stream/aggregate/source_foo.yaml", streamFoo)
 				Expect(err).To(BeNil())
 				err = f.CreateStream(streamFoo)
 				Expect(err).To(BeNil())
 
 				streamBoth := &streamsv1.Stream{}
 				streamBoth.Spec.ForProvider.Config.SetDefaults()
-				streamBoth, err = unmarshalStreamYaml("pkg/stream/manifests/stream/aggregate/source_both.yaml", streamBoth)
+				streamBoth, err = utils.UnmarshalAnyYaml("manifests/stream/aggregate/source_both.yaml", streamBoth)
 				Expect(err).To(BeNil())
 				err = f.CreateStream(streamBoth)
 				Expect(err).To(BeNil())
@@ -280,14 +255,12 @@ var _ = Describe("Stream E2E tests", func() {
 			It("can create the aggregating stream", func() {
 				stream := &streamsv1.Stream{}
 				stream.Spec.ForProvider.Config.SetDefaults()
-				stream, err := unmarshalStreamYaml("pkg/stream/manifests/stream/aggregate/aggregate.yaml", stream)
+				stream, err := utils.UnmarshalAnyYaml("manifests/stream/aggregate/aggregate.yaml", stream)
 				Expect(err).To(BeNil())
 				err = f.CreateStream(stream)
 				Expect(err).To(BeNil())
-				err = f.WaitForStreamSyncAndReady(stream.Spec.ForProvider.Config.Name)
+				err = f.WaitForStreamSyncAndReady(stream.ObjectMeta.Name)
 				Expect(err).To(BeNil())
-			})
-			It("can create the aggregating stream", func() {
 				parameters, err := f.GetStreamParameters("aggregate")
 				Expect(err).To(BeNil())
 				Expect(parameters.Config.Sources).Should(HaveLen(3))

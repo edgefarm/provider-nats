@@ -1,0 +1,18 @@
+apiVersion: nats.crossplane.io/v1alpha1
+kind: Stream
+metadata:
+  name: both-source
+  annotations:
+    crossplane.io/external-name: source
+spec:
+  forProvider:
+    domain: both
+    config:
+      subjects:
+        - "source.>"
+      retention: Limits
+      storage: File
+      maxBytes: 204800
+      discard: Old
+  providerConfigRef:
+    name: acc1

@@ -21,6 +21,7 @@ package apis
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 
+	consumerv1alpha1 "github.com/edgefarm/provider-nats/apis/consumer/v1alpha1"
 	stream1alpha1 "github.com/edgefarm/provider-nats/apis/stream/v1alpha1"
 	natsv1alpha1 "github.com/edgefarm/provider-nats/apis/v1alpha1"
 )
@@ -30,6 +31,7 @@ func init() {
 	AddToSchemes = append(AddToSchemes,
 		natsv1alpha1.SchemeBuilder.AddToScheme,
 		stream1alpha1.SchemeBuilder.AddToScheme,
+		consumerv1alpha1.SchemeBuilder.AddToScheme,
 	)
 }
 

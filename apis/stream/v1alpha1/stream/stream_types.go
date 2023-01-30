@@ -16,50 +16,48 @@ limitations under the License.
 
 package stream
 
+// +kubebuilder:object:generate=true
 // StreamConfig will determine the properties for a stream.
 // There are sensible defaults for most.
 type StreamConfig struct {
-	// Name is the name of the stream.
-	// Names cannot contain whitespace, ., *, >, path separators (forward or backwards slash), and non-printable characters.
-	// +kubebuilder:validation:Required
-	Name string `json:"name"`
-
 	// Description is a human readable description of the stream.
 	// +kubebuilder:validation:Optional
 	Description string `json:"description,omitempty"`
 
 	// Subjects is a list of subjects to consume, supports wildcards.
 	// +kubebuilder:validation:Optional
-	Subjects []string `json:"subjects"`
+	Subjects []string `json:"subjects,omitempty"`
 
 	// Retention defines the retention policy for the stream.
 	// +kubebuilder:validation:Enum=Limits;Interest;WorkQueue
+	// +kubebuilder:validation:Required
 	// +kubebuilder:default=Limits
 	Retention string `json:"retention"`
 
 	// MaxConsumers defines how many Consumers can be defined for a given Stream.
 	// Define -1 for unlimited.
 	// +kubebuilder:default=-1
-	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Required
 	MaxConsumers int `json:"maxConsumers"`
 
 	// MaxMsgs defines how many messages may be in a Stream.
 	// Adheres to Discard Policy, removing oldest or refusing new messages if the Stream exceeds this number of messages.
 	// +kubebuilder:default=-1
-	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Required
 	MaxMsgs int64 `json:"maxMsgs"`
 
 	// MaxBytes defines how many bytes the Stream may contain.
 	// Adheres to Discard Policy, removing oldest or refusing new messages if the Stream exceeds this size.
 	// +kubebuilder:default=-1
-	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Required
 	MaxBytes int64 `json:"maxBytes"`
 
 	// Discard defines the behavior of discarding messages when any streams' limits have been reached.
-	// DiscardOld (default): This policy will delete the oldest messages in order to maintain the limit. For example, if MaxAge is set to one minute, the server will automatically delete messages older than one minute with this policy.
-	// DiscardNew: This policy will reject new messages from being appended to the stream if it would exceed one of the limits. An extension to this policy is DiscardNewPerSubject which will apply this policy on a per-subject basis within the stream.
-	// +kubebuilder:validation:Enum=DiscardOld;DiscardNew
-	// +kubebuilder:default=DiscardOld
+	// Old (default): This policy will delete the oldest messages in order to maintain the limit. For example, if MaxAge is set to one minute, the server will automatically delete messages older than one minute with this policy.
+	// New: This policy will reject new messages from being appended to the stream if it would exceed one of the limits. An extension to this policy is DiscardNewPerSubject which will apply this policy on a per-subject basis within the stream.
+	// +kubebuilder:validation:Enum=Old;New
+	// +kubebuilder:default=Old
+	// +kubebuilder:validation:Required
 	Discard string `json:"discard"`
 
 	// DiscardOldPerSubject will discard old messages per subject.
@@ -163,8 +161,8 @@ type RePublish struct {
 
 	// Destination is the destination subject messages will be re-published to. The source and destination must be a valid subject mapping.
 	// For information on subject mapping see https://docs.nats.io/jetstream/concepts/subjects#subject-mapping
-
 	Destination string `json:"destination"`
+
 	// HeadersOnly defines if true, that the message data will not be included in the re-published message, only an additional header Nats-Msg-Size indicating the size of the message in bytes.
 	// +kubebuilder:validation:Optional
 	HeadersOnly bool `json:"headersOnly,omitempty"`
@@ -258,8 +256,10 @@ type StreamObservationClusterInfo struct {
 type StreamObservationConnection struct {
 	// Address is the address of the connection.
 	Address string `json:"address"`
-	// PublicKey is the public key of the used user.
-	PublicKey string `json:"publicKey"`
+	// AccountPublicKey is the public key of the used account.
+	AccountPublicKey string `json:"accountPublicKey"`
+	// UserPublicKey is the public key of the used user.
+	UserPublicKey string `json:"userPublicKey"`
 }
 
 // PeerInfo shows information about all the peers in the cluster that

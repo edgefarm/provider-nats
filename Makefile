@@ -73,6 +73,9 @@ dev: $(KIND) $(KUBECTL)
 	@$(KUBECTL) apply -k https://github.com/crossplane/crossplane//cluster?ref=master
 	@$(INFO) Installing Provider NATS CRDs
 	@$(KUBECTL) apply -R -f package/crds
+	( cd cluster/local/config/main-nats/ && ./create.sh )
+	( cd cluster/local/config/nsc/ && ./create.sh )
+	( cd cluster/local/config/leaf-nats/ && ./create.sh )
 	@$(INFO) Starting Provider NATS controllers
 	@$(GO) run cmd/provider/main.go --debug
 

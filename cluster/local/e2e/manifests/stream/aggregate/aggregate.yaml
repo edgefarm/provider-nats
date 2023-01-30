@@ -1,0 +1,26 @@
+apiVersion: nats.crossplane.io/v1alpha1
+kind: Stream
+metadata:
+  name: aggregate
+spec:
+  forProvider:
+    config:
+      retention: Limits
+      storage: File
+      maxBytes: 204800
+      discard: Old
+      sources:
+        - name: source
+          external:
+            apiPrefix: "$JS.foo.API"
+            deliverPrefix: ""
+        - name: source
+          external:
+            apiPrefix: "$JS.both.API"
+            deliverPrefix: ""
+        - name: source
+          external:
+            apiPrefix: "$JS.missing.API"
+            deliverPrefix: ""
+  providerConfigRef:
+    name: acc1

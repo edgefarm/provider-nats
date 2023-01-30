@@ -1,0 +1,10 @@
+apiVersion: nats.crossplane.io/v1alpha1
+kind: Consumer
+metadata:
+  name: missing-stream
+spec:
+  forProvider:
+    stream: missing
+    config: {}
+  providerConfigRef:
+    name: acc1

@@ -4,24 +4,9 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
+
+	convert "github.com/edgefarm/provider-nats/internal/convert"
 )
-
-func TimeToRFC3339(t *time.Time) (string, error) {
-	str, err := t.MarshalText()
-	if err != nil {
-		return "", err
-	}
-	return string(str), nil
-}
-
-func RFC3339ToTime(t string) (*time.Time, error) {
-	r := &time.Time{}
-	err := r.UnmarshalText([]byte(t))
-	if err != nil {
-		return r, err
-	}
-	return r, nil
-}
 
 func convertRetentionPolicy(retention string) nats.RetentionPolicy {
 	switch retention {
@@ -38,9 +23,9 @@ func convertRetentionPolicy(retention string) nats.RetentionPolicy {
 
 func convertDiscardPolicy(discard string) nats.DiscardPolicy {
 	switch discard {
-	case "DiscardOld":
+	case "Old":
 		return nats.DiscardOld
-	case "DiscardNew":
+	case "New":
 		return nats.DiscardNew
 	default:
 		return nats.DiscardOld
@@ -58,9 +43,9 @@ func convertStorage(storage string) nats.StorageType {
 	}
 }
 
-func convertBase(config *StreamConfig) *nats.StreamConfig {
+func convertBase(name string, config *StreamConfig) *nats.StreamConfig {
 	return &nats.StreamConfig{
-		Name:                 config.Name,
+		Name:                 name,
 		Description:          config.Description,
 		Subjects:             config.Subjects,
 		Retention:            convertRetentionPolicy(config.Retention),
@@ -108,7 +93,7 @@ func convertMirror(in *StreamConfig, out *nats.StreamConfig) error {
 		var optStartTime *time.Time
 		if in.Mirror.StartTime != "" {
 			var err error
-			optStartTime, err = RFC3339ToTime(in.Mirror.StartTime)
+			optStartTime, err = convert.RFC3339ToTime(in.Mirror.StartTime)
 			if err != nil {
 				return err
 			}
@@ -138,7 +123,7 @@ func convertSources(in *StreamConfig, out *nats.StreamConfig) error {
 			var optStartTime *time.Time
 			if source.StartTime != "" {
 				var err error
-				optStartTime, err = RFC3339ToTime(source.StartTime)
+				optStartTime, err = convert.RFC3339ToTime(source.StartTime)
 				if err != nil {
 					return err
 				}
@@ -163,8 +148,8 @@ func convertSources(in *StreamConfig, out *nats.StreamConfig) error {
 	return nil
 }
 
-func ConfigV1Alpha1ToNats(config *StreamConfig) (*nats.StreamConfig, error) {
-	natsConfig := convertBase(config)
+func ConfigV1Alpha1ToNats(name string, config *StreamConfig) (*nats.StreamConfig, error) {
+	natsConfig := convertBase(name, config)
 	err := convertDurations(config, natsConfig)
 	if err != nil {
 		return &nats.StreamConfig{}, err

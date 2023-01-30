@@ -37,6 +37,17 @@ func (f *Framework) CreateStream(stream *v1alpha1.Stream) error {
 	return nil
 }
 
+func (f *Framework) CreateOrLeaveStream(stream *v1alpha1.Stream) error {
+	_, err := f.StreamsClientset.Streams().Create(context.Background(), stream, metav1.CreateOptions{})
+	if err != nil {
+		if kerrors.IsAlreadyExists(err) {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
 func (f *Framework) UpdateStream(stream *v1alpha1.Stream) error {
 	_, err := f.StreamsClientset.Streams().Update(context.Background(), stream, metav1.UpdateOptions{})
 	if err != nil {
@@ -144,7 +155,15 @@ func (f *Framework) GetStreamUserPublicKey(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return account.Status.AtProvider.Connection.PublicKey, nil
+	return account.Status.AtProvider.Connection.UserPublicKey, nil
+}
+
+func (f *Framework) GetStreamAccountPublicKey(name string) (string, error) {
+	account, err := f.StreamsClientset.Streams().Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	return account.Status.AtProvider.Connection.AccountPublicKey, nil
 }
 
 func (f *Framework) GetStreamDomain(name string) (string, error) {

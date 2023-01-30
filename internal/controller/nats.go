@@ -21,6 +21,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/edgefarm/provider-nats/internal/controller/config"
+	consumer "github.com/edgefarm/provider-nats/internal/controller/consumer"
 	stream "github.com/edgefarm/provider-nats/internal/controller/stream"
 )
 
@@ -30,6 +31,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	for _, setup := range []func(ctrl.Manager, controller.Options) error{
 		config.Setup,
 		stream.Setup,
+		consumer.Setup,
 	} {
 		if err := setup(mgr, o); err != nil {
 			return err
