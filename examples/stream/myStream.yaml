@@ -1,0 +1,15 @@
+apiVersion: nats.crossplane.io/v1alpha1
+kind: Stream
+metadata:
+  name: mystream
+spec:
+  forProvider:
+    config:
+      subjects:
+        - mysubject.>
+      retention: Limits
+      storage: File
+      maxBytes: 102400
+      discard: Old
+  providerConfigRef:
+    name: default

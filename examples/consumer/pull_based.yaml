@@ -1,0 +1,11 @@
+apiVersion: nats.crossplane.io/v1alpha1
+kind: Consumer
+metadata:
+  name: pull
+spec:
+  forProvider:
+    stream: mystream
+    config:
+      pull: {}
+  providerConfigRef:
+    name: default

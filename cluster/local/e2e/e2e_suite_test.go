@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	_ "github.com/edgefarm/provider-nats/cluster/local/e2e/pkg/consumer"
 	_ "github.com/edgefarm/provider-nats/cluster/local/e2e/pkg/stream"
 	utils "github.com/edgefarm/provider-nats/cluster/local/e2e/pkg/utils"
 )

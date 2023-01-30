@@ -199,7 +199,18 @@ metadata:
   name: "${PACKAGE_NAME}"
 spec:
   package: "${PACKAGE_NAME}"
+  controllerConfigRef:
+    name: "${PACKAGE_NAME}"
   packagePullPolicy: Never
+---
+apiVersion: pkg.crossplane.io/v1alpha1
+kind: ControllerConfig
+metadata:
+  name: "${PACKAGE_NAME}"
+spec:
+  args:
+    - --poll
+    - 3s
 EOF
 )"
 
@@ -222,8 +233,8 @@ echo_step "Provision nats credentials"
 ( cd ${projectdir}/cluster/local/config/nsc ; ./create.sh )
 echo_step "Deploy leaf-nats servers"
 ( cd ${projectdir}/cluster/local/config/leaf-nats ; ./create.sh )
-
-( cd ${projectdir}/cluster/local/e2e/pkg/stream/manifests/ ; kubectl apply -f providerconfig )
+echo_step "Deploy providerconfigs"
+( cd ${projectdir}/cluster/local/e2e/manifests/ ; kubectl apply -f providerconfig )
 
 # ----------- e2e tests
 echo_step "--- E2E TESTS ---"

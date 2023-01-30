@@ -18,6 +18,7 @@ limitations under the License.
 package scheme
 
 import (
+	consumerv1alpha1 "github.com/edgefarm/provider-nats/apis/consumer/v1alpha1"
 	streamv1alpha1 "github.com/edgefarm/provider-nats/apis/stream/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -30,6 +31,7 @@ var Scheme = runtime.NewScheme()
 var Codecs = serializer.NewCodecFactory(Scheme)
 var ParameterCodec = runtime.NewParameterCodec(Scheme)
 var localSchemeBuilder = runtime.SchemeBuilder{
+	consumerv1alpha1.AddToScheme,
 	streamv1alpha1.AddToScheme,
 }
 

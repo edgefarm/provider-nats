@@ -19,6 +19,8 @@ package fake
 
 import (
 	clientset "github.com/edgefarm/provider-nats/internal/clientset/provider"
+	consumerv1alpha1 "github.com/edgefarm/provider-nats/internal/clientset/provider/typed/consumer/v1alpha1"
+	fakeconsumerv1alpha1 "github.com/edgefarm/provider-nats/internal/clientset/provider/typed/consumer/v1alpha1/fake"
 	streamv1alpha1 "github.com/edgefarm/provider-nats/internal/clientset/provider/typed/stream/v1alpha1"
 	fakestreamv1alpha1 "github.com/edgefarm/provider-nats/internal/clientset/provider/typed/stream/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -77,6 +79,11 @@ var (
 	_ clientset.Interface = &Clientset{}
 	_ testing.FakeClient  = &Clientset{}
 )
+
+// ConsumerV1alpha1 retrieves the ConsumerV1alpha1Client
+func (c *Clientset) ConsumerV1alpha1() consumerv1alpha1.ConsumerV1alpha1Interface {
+	return &fakeconsumerv1alpha1.FakeConsumerV1alpha1{Fake: &c.Fake}
+}
 
 // StreamV1alpha1 retrieves the StreamV1alpha1Client
 func (c *Clientset) StreamV1alpha1() streamv1alpha1.StreamV1alpha1Interface {

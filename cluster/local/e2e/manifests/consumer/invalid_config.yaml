@@ -1,0 +1,13 @@
+apiVersion: nats.crossplane.io/v1alpha1
+kind: Consumer
+metadata:
+  name: invalid
+spec:
+  forProvider:
+    stream: unicorn
+    config:
+      pull: {}
+      push:
+        deliverSubject: invalid
+  providerConfigRef:
+    name: acc1

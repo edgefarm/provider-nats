@@ -1,0 +1,17 @@
+apiVersion: nats.crossplane.io/v1alpha1
+kind: Consumer
+metadata:
+  name: push
+spec:
+  forProvider:
+    stream: unicorn
+    config:
+      # ackPolicy: Explicit
+      # ackWait: 30s
+      # deliverPolicy: All
+      # numReplicas: 0
+      # replayPolicy: Instant
+      push:
+        deliverSubject: my.delivery.subject
+  providerConfigRef:
+    name: acc1

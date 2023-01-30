@@ -49,8 +49,8 @@ func StreamInfo(c *Client, domain string, stream string) (*nats.StreamInfo, erro
 	return info, nil
 }
 
-// Create creates a new jetstream stream with a given configuration for a given domain
-func (c *Client) Create(domain string, config *nats.StreamConfig) error {
+// CreateStream creates a new jetstream stream with a given configuration for a given domain
+func (c *Client) CreateStream(domain string, config *nats.StreamConfig) error {
 	jsOpts := []nats.JSOpt{}
 	if domain != "" {
 		jsOpts = append(jsOpts, nats.Domain(domain))
@@ -69,8 +69,8 @@ func (c *Client) Create(domain string, config *nats.StreamConfig) error {
 	return nil
 }
 
-// Delete deletes a jetstream stream with a given name for a given domain
-func (c *Client) Delete(domain string, name string) error {
+// DeleteStream deletes a jetstream stream with a given name for a given domain
+func (c *Client) DeleteStream(domain string, name string) error {
 	jsOpts := []nats.JSOpt{}
 	if domain != "" {
 		jsOpts = append(jsOpts, nats.Domain(domain))
@@ -89,8 +89,8 @@ func (c *Client) Delete(domain string, name string) error {
 	return nil
 }
 
-// Update updates a jetstream stream with a given configuration for a given domain
-func (c *Client) Update(domain string, config *nats.StreamConfig) error {
+// UpdateStream updates a jetstream stream with a given configuration for a given domain
+func (c *Client) UpdateStream(domain string, config *nats.StreamConfig) error {
 	jsOpts := []nats.JSOpt{}
 	if domain != "" {
 		jsOpts = append(jsOpts, nats.Domain(domain))

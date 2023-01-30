@@ -1,0 +1,12 @@
+apiVersion: nats.crossplane.io/v1alpha1
+kind: Consumer
+metadata:
+  name: pull
+spec:
+  forProvider:
+    stream: unicorn
+    config:
+      pull:
+        maxWaiting: 100
+  providerConfigRef:
+    name: acc1

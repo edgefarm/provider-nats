@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	streamv1 "github.com/edgefarm/provider-nats/apis/stream/v1alpha1"
+	consumerclientv1 "github.com/edgefarm/provider-nats/internal/clientset/provider/typed/consumer/v1alpha1"
 	streamclientv1 "github.com/edgefarm/provider-nats/internal/clientset/provider/typed/stream/v1alpha1"
 )
 
@@ -32,6 +33,8 @@ type Framework struct {
 	ClientSet *kubernetes.Clientset
 
 	StreamsClientset *streamclientv1.StreamV1alpha1Client
+
+	ConsumersClientset *consumerclientv1.ConsumerV1alpha1Client
 
 	// CtrlClient is the kubernetes client originally supposed
 	// to write controllers. It provides some convinience methods
@@ -66,6 +69,11 @@ func CreateFramework(ctx context.Context, scheme *runtime.Scheme) error {
 		return err
 	}
 
+	consumerClientset, err := consumerclientv1.NewForConfig(streamRestConfig)
+	if err != nil {
+		return err
+	}
+
 	ctrlClient, err := ctrlclient.New(restConfig, client.Options{})
 	if err != nil {
 		return err
@@ -73,12 +81,13 @@ func CreateFramework(ctx context.Context, scheme *runtime.Scheme) error {
 
 	// create the framework
 	DefaultFramework = &Framework{
-		Context:          ctx,
-		ClientSet:        clientset,
-		CtrlClient:       ctrlClient,
-		StreamsClientset: streamsClientset,
-		Scheme:           scheme,
-		ClientTimeout:    DefaultClientTimeout,
+		Context:            ctx,
+		ClientSet:          clientset,
+		CtrlClient:         ctrlClient,
+		StreamsClientset:   streamsClientset,
+		ConsumersClientset: consumerClientset,
+		Scheme:             scheme,
+		ClientTimeout:      DefaultClientTimeout,
 	}
 
 	return nil
