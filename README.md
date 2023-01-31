@@ -1,35 +1,98 @@
 # provider-nats
 
-`provider-nats` is a minimal [Crossplane](https://crossplane.io/) Provider
-that is meant to be used as a template for implementing new Providers. It comes
-with the following features that are meant to be refactored:
+`provider-nats` is a [Crossplane](https://crossplane.io/) Provider
+that implements [NATS Jetstream](https://docs.nats.io/nats-concepts/jetstream) managed resources
 
-- A `ProviderConfig` type that only points to a credentials `Secret`.
-- A `Stream` resource type that serves as an example managed resource.
-- A managed resource controller that reconciles `Stream` objects and simply
-  prints their configuration in its `Observe` method.
+Currently the provider supports the following resources:
+- Stream: https://docs.nats.io/nats-concepts/jetstream/streams
+- Consumer: https://docs.nats.io/nats-concepts/jetstream/consumers
 
-## Developing
+Future releases might implement the key/value store and the object store as well.
 
-1. Use this repository as a template to create a new one.
-1. Run `make submodules` to initialize the "build" Make submodule we use for CI/CD.
-1. Rename the provider by running the follwing command:
+## Examples
+
+You might find the [examples](examples) directory helpful. Every example in this directory is deployable in a `make dev` environment.
+
+For a full spec of possible options look either at [apis/consumer/v1alpha1/consumer/consumer_types.go](apis/consumer/v1alpha1/consumer/consumer_types.go), [apis/stream/v1alpha1/stream/stream_types.go](apis/stream/v1alpha1/stream/stream_types.go)
+or use the `kubectl explain` command.
+
+```bash
+$ kubectl explain streams.nats.crossplane.io.spec.forProvider
+$ kubectl explain consumers.nats.crossplane.io.spec.forProvider
 ```
-  make provider.prepare provider={PascalProviderName}
-```
-4. Add your new type by running the following command:
-```
-make provider.addtype provider={PascalProviderName} group={group} kind={type}
-```
-5. Replace the *sample* group with your new group in apis/{provider}.go
-5. Replace the *mytype* type with your new type in internal/controller/{provider}.go
-5. Replace the default controller and ProviderConfig implementations with your own
-5. Run `make reviewable` to run code generation, linters, and tests.
-5. Run `make build` to build the provider.
 
-Refer to Crossplane's [CONTRIBUTING.md] file for more information on how the
-Crossplane community prefers to work. The [Provider Development][provider-dev]
-guide may also be of use.
+You can also follow the [NATS Jetstream configuration docs](https://docs.nats.io/nats-concepts/jetstream/streams#configuration) and [NATS Jetstream consumer configuration docs](https://docs.nats.io/nats-concepts/jetstream/consumers#configuration) for more information as the managed resources implement basically the same configuration options.
 
-[CONTRIBUTING.md]: https://github.com/crossplane/crossplane/blob/master/CONTRIBUTING.md
-[provider-dev]: https://github.com/crossplane/crossplane/blob/master/docs/contributing/provider_development_guide.md
+### Example stream resource
+
+```yaml
+apiVersion: nats.crossplane.io/v1alpha1
+kind: Stream
+metadata:
+  name: foo
+spec:
+  forProvider:
+    domain: foo
+    config:
+      subjects:
+        - foo.>
+      retention: Limits
+      storage: File
+      maxBytes: 102400
+      discard: Old
+  providerConfigRef:
+    name: default
+```
+
+### Example minimal pull consumer resource
+
+```yaml
+apiVersion: nats.crossplane.io/v1alpha1
+kind: Consumer
+metadata:
+  name: pull
+spec:
+  forProvider:
+    stream: foo
+    config:
+      pull: {}
+  providerConfigRef:
+    name: default
+
+```
+## Developing locally
+
+Start a local development environment using `kind` with crossplane and a complete NATS environment. Ensure that you can reach `nats.nats.svc` on 127.0.0.1
+
+```bash
+# The provider needs to know how to reach the NATS server. We use kubectl port-forward to expose the NATS server on localhost
+echo "nats.nats.svc" >> /etc/hosts
+# Create the cluster
+make dev
+# Please ensure you reach the right cluster before we start the port-forward. Usually it should be the right one after `make dev`
+kubectl port-forward -n nats svc/nats 4222:4222
+```
+
+Once the environment is up and running you can deploy the provider and the managed resources. Have a look at the files used to e2e tests ([cluster/local/e2e/manifests/](cluster/local/e2e/manifests/)).
+
+### Debugging
+
+Just start the debugger of your choice to debug `cmd/provider/main.go`.
+The only thing that is important is, that your KUBECONFIG points to a dev cluster with the CRDs deployed.
+
+## E2E Tests
+
+Simply run `make e2e` for running the e2e tests. They spin up a `kind` cluster with a fully provisioned NATS environment including leaf nats servers and JWT/NKEY based authentication.
+The e2e tests ensure that managing streams and consumers works as expected.
+
+If you want to develop or debug e2e tests you have some options for the creation of the test cluster.
+
+Provide the following env variables for `make e2e`:
+- `E2E_DEV`: if `true`, the e2e cluster is not deleted after the tests
+- `E2E_SKIP_TESTS`: if `true`, the e2e tests are skipped
+
+To create a cluster that is capable of running the e2e tests and keep it running during development of the e2e tests you can combine both:
+
+```bash
+E2E_DEV=true E2E_SKIP_TESTS=true make e2e
+```

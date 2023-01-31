@@ -53,8 +53,6 @@ const (
 	errNewClient = "cannot create new Service"
 )
 
-var ()
-
 // Setup adds a controller that reconciles Consumer managed resources.
 func Setup(mgr ctrl.Manager, o controller.Options) error {
 	name := managed.ControllerName(v1alpha1.ConsumerGroupKind)
