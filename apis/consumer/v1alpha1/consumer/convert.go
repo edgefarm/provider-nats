@@ -4,8 +4,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/edgefarm/provider-nats/internal/convert"
 	"github.com/nats-io/nats.go"
+
+	"github.com/edgefarm/provider-nats/internal/convert"
 
 	errors "github.com/edgefarm/provider-nats/apis/consumer/v1alpha1/consumer/errors"
 )
