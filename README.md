@@ -1,7 +1,27 @@
+[contributors-shield]: https://img.shields.io/github/contributors/edgefarm/provider-nats.svg?style=for-the-badge
+[contributors-url]: https://github.com/edgefarm/provider-nats/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/edgefarm/provider-nats.svg?style=for-the-badge
+[forks-url]: https://github.com/edgefarm/provider-nats/network/members
+[stars-shield]: https://img.shields.io/github/stars/edgefarm/provider-nats.svg?style=for-the-badge
+[stars-url]: https://github.com/edgefarm/provider-nats/stargazers
+[issues-shield]: https://img.shields.io/github/issues/edgefarm/provider-nats.svg?style=for-the-badge
+[issues-url]: https://github.com/edgefarm/provider-nats/issues
+[license-shield]: https://img.shields.io/github/license/edgefarm/provider-nats?logo=apache2&style=for-the-badge
+[license-url]: https://opensource.org/license/apache-2-0
+
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![Apache 2.0 License][license-shield]][license-url]
+
+
 # provider-nats
 
 `provider-nats` is a [Crossplane](https://crossplane.io/) Provider
 that implements [NATS Jetstream](https://docs.nats.io/nats-concepts/jetstream) managed resources
+
+## Features
 
 Currently the provider supports the following resources:
 - Stream: https://docs.nats.io/nats-concepts/jetstream/streams
@@ -9,7 +29,27 @@ Currently the provider supports the following resources:
 
 Future releases might implement the key/value store and the object store as well.
 
-## Examples
+## 🎯 Installation
+
+Make sure you have Crossplane installed. See the [Crossplane installation](https://docs.crossplane.io/latest/software/install/)
+
+Create a `Provider` resource:
+
+```yaml
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-nats
+spec:
+  package: ghcr.io/edgefarm/provider-nats/provider-nats:master
+  packagePullPolicy: IfNotPresent
+  revisionActivationPolicy: Automatic
+  revisionHistoryLimit: 1
+```
+
+**NOTE: Instead of using package version `master` [have a look at the versions](https://github.com/edgefarm/provider-nats/pkgs/container/provider-nats%2Fprovider-nats)**
+
+## 📖 Examples
 
 You might find the [examples](examples) directory helpful. Every example in this directory is deployable in a `make dev` environment.
 
@@ -58,7 +98,6 @@ spec:
       pull: {}
   providerConfigRef:
     name: default
-
 ```
 ## Developing locally
 
@@ -75,14 +114,14 @@ kubectl port-forward -n nats svc/nats 4222:4222
 
 Once the environment is up and running you can deploy the provider and the managed resources. Have a look at the files used to e2e tests ([cluster/local/e2e/manifests/](cluster/local/e2e/manifests/)).
 
-### Debugging
+## 🐞 Debugging
 
 Just start the debugger of your choice to debug `cmd/provider/main.go`.
-The only thing that is important is, that your KUBECONFIG points to a dev cluster with the CRDs deployed.
+The only thing that is important is, that your KUBECONFIG points to a `dev` cluster with the CRDs deployed (see `Developing locally`).
 
-## E2E Tests
+## 🧪 Testing
 
-Simply run `make e2e` for running the e2e tests. They spin up a `kind` cluster with a fully provisioned NATS environment including leaf nats servers and JWT/NKEY based authentication.
+Simply run `make e2e` for running the e2e tests. The e2e tests spin up a `kind` cluster with a fully provisioned NATS environment including leaf nats servers and JWT/NKEY based authentication.
 The e2e tests ensure that managing streams and consumers works as expected.
 
 If you want to develop or debug e2e tests you have some options for the creation of the test cluster.
@@ -96,3 +135,13 @@ To create a cluster that is capable of running the e2e tests and keep it running
 ```bash
 E2E_DEV=true E2E_SKIP_TESTS=true make e2e
 ```
+
+# 🤝🏽 Contributing
+
+Code contributions are very much **welcome**.
+
+1. Fork the Project
+2. Create your Branch (`git checkout -b AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature")
+4. Push to the Branch (`git push origin AmazingFeature`)
+5. Open a Pull Request targetting the `beta` branch.
