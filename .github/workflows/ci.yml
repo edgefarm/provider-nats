@@ -17,7 +17,9 @@ env:
   # Common users. We can't run a step 'if secrets.AWS_USR != ""' but we can run
   # a step 'if env.AWS_USR' != ""', so we copy these to succinctly test whether
   # credentials have been provided before trying to run steps that need them.
-  DOCKER_USR: ${{ secrets.DOCKER_USR }}
+  
+  # The original crossplane build uses secrets.DOCKER_USR and secrets.DOCKER_PSW
+  DOCKER_USR: ${{ secrets.DOCKER_USERNAME }}
   AWS_USR: ${{ secrets.AWS_USR }}
 
 jobs:
@@ -285,7 +287,9 @@ jobs:
         run: make vendor vendor.check
 
       - name: Build Artifacts
-        run: make -j2 build.all
+        # We are building these artifacts for ghcr.io/edgefarm not crossplane
+        # because we are not yet ready to move this provider to the Crossplane org.
+        run: BUILD_REGISTRY=ghcr.io/edgefarm make -j2 build.all
         env:
           # We're using docker buildx, which doesn't actually load the images it
           # builds by default. Specifying --load does so.
@@ -301,15 +305,19 @@ jobs:
         uses: docker/login-action@v2
         if: env.DOCKER_USR != ''
         with:
+          registry: ghcr.io
           username: ${{ secrets.DOCKER_USR }}
-          password: ${{ secrets.DOCKER_PSW }}
+          # The original Crossplane build workflow uses secrets.DOCKER_PSW
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
+        # The last two steps are specific and divergent from the Crossplane build process.
+        # It can be reverted once this provider is moved to the Crossplane org.
       - name: Publish Artifacts to S3 and Docker Hub
-        run: make -j2 publish BRANCH_NAME=${GITHUB_REF##*/}
-        if: env.AWS_USR != '' && env.DOCKER_USR != ''
+        # We are building these artifacts for ghcr.io/edgefarm not crossplane
+        # because we are not yet ready to move this provider to the Crossplane org.
+        run: BUILD_REGISTRY=ghcr.io/edgefarm make -j2 publish BRANCH_NAME=${GITHUB_REF##*/}
+        if: env.DOCKER_USR != ''
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_USR }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PSW }}
           GIT_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCS_GIT_USR: ${{ secrets.UPBOUND_BOT_GITHUB_USR }}
           DOCS_GIT_PSW: ${{ secrets.UPBOUND_BOT_GITHUB_PSW }}
@@ -322,3 +330,23 @@ jobs:
           CHANNEL: master
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_USR }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PSW }}
+
+      # These are the original steps from the Crossplane build process.
+      # - name: Publish Artifacts to S3 and Docker Hub
+      #   run: make -j2 publish BRANCH_NAME=${GITHUB_REF##*/}
+      #   if: env.AWS_USR != '' && env.DOCKER_USR != ''
+      #   env:
+      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_USR }}
+      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PSW }}
+      #     GIT_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     DOCS_GIT_USR: ${{ secrets.UPBOUND_BOT_GITHUB_USR }}
+      #     DOCS_GIT_PSW: ${{ secrets.UPBOUND_BOT_GITHUB_PSW }}
+
+      # - name: Promote Artifacts in S3 and Docker Hub
+      #   if: github.ref == 'refs/heads/main' && env.AWS_USR != '' && env.DOCKER_USR != ''
+      #   run: make -j2 promote
+      #   env:
+      #     BRANCH_NAME: main
+      #     CHANNEL: master
+      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_USR }}
+      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_PSW }}
