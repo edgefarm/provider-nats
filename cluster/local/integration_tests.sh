@@ -33,27 +33,8 @@ echo_error(){
 }
 
 
-testcase1() {
-      echo_step "Testcase 1: Deploy jetstream resource to main cluster"
-}
-
-
-testcase2() {
-      echo_step "Testcase 2: Deploy jetstream resource to domain foo"
-
-}
-
-testcase3() {
-      echo_step "Testcase 2: Deploy jetstream resource to domain bar"
-}
-
-testcase4() {
-      echo_step "Testcase 2: Deploy jetstream resource to domain foo"
-}
-
 # The name of your provider. Many provider Makefiles override this value.
 PACKAGE_NAME="provider-nats"
-
 
 # ------------------------------
 projectdir="$( cd "$( dirname "${BASH_SOURCE[0]}")"/../.. && pwd )"
@@ -107,6 +88,7 @@ echo_step "setting up local package cache"
 CACHE_PATH="${projectdir}/.work/inttest-package-cache"
 mkdir -p "${CACHE_PATH}"
 echo "created cache dir at ${CACHE_PATH}"
+docker images
 docker tag "${BUILD_IMAGE}" "${PACKAGE_IMAGE}"
 "${UP}" xpkg xp-extract --from-daemon "${PACKAGE_IMAGE}" -o "${CACHE_PATH}/${PACKAGE_NAME}.gz" && chmod 644 "${CACHE_PATH}/${PACKAGE_NAME}.gz"
 

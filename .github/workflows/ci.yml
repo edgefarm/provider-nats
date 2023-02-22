@@ -224,7 +224,7 @@ jobs:
         run: make vendor vendor.check
 
       - name: Build Helm Chart
-        run: make -j2 build
+        run: BUILD_REGISTRY=ghcr.io/edgefarm/provider-nats DOCKER_REGISTRY=ghcr.io/edgefarm/provider-nats make -j2 build
         env:
           # We're using docker buildx, which doesn't actually load the images it
           # builds by default. Specifying --load does so.
@@ -233,6 +233,10 @@ jobs:
       - name: Run E2E Tests
         timeout-minutes: 20
         run: BUILD_REGISTRY=ghcr.io/edgefarm/provider-nats DOCKER_REGISTRY=ghcr.io/edgefarm/provider-nats make e2e USE_HELM3=true
+        env:
+          # We're using docker buildx, which doesn't actually load the images it
+          # builds by default. Specifying --load does so.
+          BUILD_ARGS: "--load"
 
   publish-artifacts:
     runs-on: ubuntu-22.04
