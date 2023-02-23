@@ -8,10 +8,17 @@
 [issues-url]: https://github.com/edgefarm/provider-nats/issues
 [license-shield]: https://img.shields.io/github/license/edgefarm/provider-nats?logo=apache2&style=for-the-badge
 [license-url]: https://opensource.org/license/apache-2-0
-[release-shield]:  https://img.shields.io/github/release/edgefarm/provider-nats.svg?style=for-the-badge
-[release-url]: /github/v/release/edgefarm/provider-nats?display_name=tag&sort=semver
-[tag-shield]:  https://img.shields.io/github/tag/edgefarm/provider-nats.svg?style=for-the-badge
-[tag-url]: /github/v/release/edgefarm/provider-nats?display_name=tag&include_prereleases
+[release-shield]:  https://img.shields.io/github/release/edgefarm/provider-nats.svg?style=for-the-badge&sort=semver
+[release-url]: https://github.com/edgefarm/provider-nats/releases
+[tag-shield]:  https://img.shields.io/github/tag/edgefarm/provider-nats.svg?include_prereleases&sort=semver&style=for-the-badge
+[tag-url]: https://github.com/edgefarm/provider-nats/tags
+
+
+
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/edgefarm/provider-nats/ci?style=for-the-badge)
+
+[ci-shield]:  https://img.shields.io/github/actions/workflow/status/edgefarm/provider-nats/ci.yml?branch=main&style=for-the-badge
+[ci-url]: https://github.com/edgefarm/provider-nats/actions/workflows/ci.yml
 
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
@@ -20,6 +27,7 @@
 [![Apache 2.0 License][license-shield]][license-url]
 [![Release][release-shield]][release-url]
 [![Latest Tag][tag-shield]][tag-url]
+[![CI][ci-shield]][ci-url]
 
 # provider-nats
 
