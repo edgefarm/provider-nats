@@ -8,13 +8,18 @@
 [issues-url]: https://github.com/edgefarm/provider-nats/issues
 [license-shield]: https://img.shields.io/github/license/edgefarm/provider-nats?logo=apache2&style=for-the-badge
 [license-url]: https://opensource.org/license/apache-2-0
+[release-shield]:  https://img.shields.io/github/release/edgefarm/provider-nats.svg?style=for-the-badge
+[release-url]: /github/v/release/edgefarm/provider-nats?display_name=tag&sort=semver
+[tag-shield]:  https://img.shields.io/github/tag/edgefarm/provider-nats.svg?style=for-the-badge
+[tag-url]: /github/v/release/edgefarm/provider-nats?display_name=tag&include_prereleases
 
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![Apache 2.0 License][license-shield]][license-url]
-
+[![Release][release-shield]][release-url]
+[![Latest Tag][tag-shield]][tag-url]
 
 # provider-nats
 
@@ -27,11 +32,11 @@ Currently the provider supports the following resources:
 - Stream: https://docs.nats.io/nats-concepts/jetstream/streams
 - Consumer: https://docs.nats.io/nats-concepts/jetstream/consumers
 
-Future releases might implement the key/value store and the object store as well.
+Future releases might implement the key/value store and the object store as well. PRs are welcome.
 
 ## 🎯 Installation
 
-Make sure you have Crossplane installed. See the [Crossplane installation](https://docs.crossplane.io/latest/software/install/)
+Make sure you have Crossplane installed. See the [Crossplane installation guide](https://docs.crossplane.io/latest/software/install/)
 
 Create a `Provider` resource:
 
@@ -47,7 +52,7 @@ spec:
   revisionHistoryLimit: 1
 ```
 
-**NOTE: Instead of using package version `master` [have a look at the versions](https://github.com/edgefarm/provider-nats/pkgs/container/provider-nats%2Fprovider-nats)**
+**NOTE: Instead of using package version `master` [have a look at the available versions](https://github.com/edgefarm/provider-nats/pkgs/container/provider-nats%2Fprovider-nats)**
 
 ## 📖 Examples
 
