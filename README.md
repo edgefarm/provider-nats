@@ -12,11 +12,6 @@
 [release-url]: https://github.com/edgefarm/provider-nats/releases
 [tag-shield]:  https://img.shields.io/github/tag/edgefarm/provider-nats.svg?include_prereleases&sort=semver&style=for-the-badge
 [tag-url]: https://github.com/edgefarm/provider-nats/tags
-
-
-
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/edgefarm/provider-nats/ci?style=for-the-badge)
-
 [ci-shield]:  https://img.shields.io/github/actions/workflow/status/edgefarm/provider-nats/ci.yml?branch=main&style=for-the-badge
 [ci-url]: https://github.com/edgefarm/provider-nats/actions/workflows/ci.yml
 
