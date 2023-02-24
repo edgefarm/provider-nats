@@ -61,10 +61,13 @@ spec:
 
 You might find the [examples](examples) directory helpful. Every example in this directory is deployable in a `make dev` environment.
 
-For a full spec of possible options look either at [apis/consumer/v1alpha1/consumer/consumer_types.go](apis/consumer/v1alpha1/consumer/consumer_types.go), [apis/stream/v1alpha1/stream/stream_types.go](apis/stream/v1alpha1/stream/stream_types.go)
-or use the `kubectl explain` command.
+For a full spec of possible options 
+* go to [docs.crds.dev for Stream](https://doc.crds.dev/github.com/edgefarm/provider-nats/nats.crossplane.io/Stream/v1alpha1@v0.1.0#spec-forProvider) and [docs.crds.dev for Consumer](https://doc.crds.dev/github.com/edgefarm/provider-nats/nats.crossplane.io/Consumer/v1alpha1@v0.1.0#spec-forProvider)
+* use the `kubectl explain` command
+* or look at the type definitions [apis/consumer/v1alpha1/consumer/consumer_types.go](apis/consumer/v1alpha1/consumer/consumer_types.go), [apis/stream/v1alpha1/stream/stream_types.go](apis/stream/v1alpha1/stream/stream_types.go)
 
 ```bash
+# How to use kubectl explain
 $ kubectl explain streams.nats.crossplane.io.spec.forProvider
 $ kubectl explain consumers.nats.crossplane.io.spec.forProvider
 ```
