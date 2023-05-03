@@ -1,0 +1,37 @@
+version: v2beta1
+name: provider-nats
+
+functions:
+  wait_for: |-
+    #!/bin/bash
+    set -e
+    echo "wait for $1 $2 (ns: $3) for condition=$4"
+    until kubectl wait --for=condition=$4 $1 $2 -n $3 --timeout=60s 2>/dev/null; do echo -n "." && sleep 2; done
+
+deployments:
+  provider-nats:
+    kubectl:
+      manifests:
+        - package/crd
+        - dev/manifests/
+
+pipelines:
+  deploy-provider-nats: |-
+    #!/bin/bash
+    set -e
+    create_deployments provider-nats
+    wait_for pod "-l pkg.crossplane.io/provider=provider-nats" crossplane-system Ready
+
+dev:
+  provider-nats:
+    labelSelector:
+      pkg.crossplane.io/provider: provider-nats
+    devImage: ghcr.io/loft-sh/devspace-containers/go:1.20-alpine
+    namespace: crossplane-system
+    terminal: {}
+    ports:
+      - port: "2345"
+    sync:
+      - path: .:/app
+        excludePaths:
+          - .git

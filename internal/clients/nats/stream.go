@@ -33,7 +33,12 @@ func StreamList(c *Client, domain string) ([]string, error) {
 
 // StreamInfo returns the stream info for a given stream name for a given domain
 func StreamInfo(c *Client, domain string, stream string) (*nats.StreamInfo, error) {
-	jsctx, err := c.conn.JetStream(nats.Domain(domain))
+	jsOpts := []nats.JSOpt{}
+	if domain != "" {
+		jsOpts = append(jsOpts, nats.Domain(domain))
+	}
+
+	jsctx, err := c.conn.JetStream(jsOpts...)
 	if err != nil {
 		return nil, err
 	}
