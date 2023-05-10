@@ -66,10 +66,10 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	}
 
 	connector := &connector{
-		kube:         mgr.GetClient(),
-		usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-		newServiceFn: nats.NewClient,
-		logger:       o.Logger,
+		kube:  mgr.GetClient(),
+		usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+		// newServiceFn: nats.NewClient,
+		logger: o.Logger,
 	}
 	r := managed.NewReconciler(mgr,
 		resource.ManagedKind(v1alpha1.StreamGroupVersionKind),
@@ -89,11 +89,9 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 // A connector is expected to produce an ExternalClient when its Connect method
 // is called.
 type connector struct {
-	kube         client.Client
-	usage        resource.Tracker
-	newServiceFn func(creds []byte) (*nats.Client, error)
-	client       *nats.Client
-	logger       logging.Logger
+	kube   client.Client
+	usage  resource.Tracker
+	logger logging.Logger
 }
 
 // Connect typically produces an ExternalClient by:
@@ -117,21 +115,14 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 	}
 
 	cd := pc.Spec.Credentials
-	data, err := resource.CommonCredentialExtractor(ctx, cd.Source, c.kube, cd.CommonCredentialSelectors)
+	creds, err := resource.CommonCredentialExtractor(ctx, cd.Source, c.kube, cd.CommonCredentialSelectors)
 	if err != nil {
 		return nil, errors.Wrap(err, errGetCreds)
 	}
 
-	client, err := c.newServiceFn(data)
-	if err != nil {
-		return nil, errors.Wrap(err, errNewClient)
-	}
-
-	c.client = client
 	e := &external{
-		client:          client,
-		clientCloseChan: make(chan struct{}),
-		log:             c.logger,
+		creds: creds,
+		log:   c.logger,
 	}
 
 	return e, nil
@@ -140,11 +131,8 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 // An ExternalClient observes, then either creates, updates, or deletes an
 // external resource to ensure it reflects the managed resource's desired state.
 type external struct {
-	// A 'client' used to connect to the external resource API. In practice this
-	// would be something like an AWS SDK client.
-	client          *nats.Client
-	clientCloseChan chan struct{}
-	log             logging.Logger
+	log   logging.Logger
+	creds []byte
 }
 
 const (
@@ -161,12 +149,12 @@ func getExternalName(r *v1alpha1.Stream) (string, error) {
 	return "", fmt.Errorf("External name annotation not found for stream %s", r.GetName())
 }
 
-func (c *external) setStatus(domain string, r *v1alpha1.Stream, data *natsgo.StreamInfo) error {
+func (c *external) setStatus(client *nats.Client, domain string, r *v1alpha1.Stream, data *natsgo.StreamInfo) error {
 	r.Status.AtProvider.Domain = domain
 	// Update connection details
-	r.Status.AtProvider.Connection.Address = c.client.Address
-	r.Status.AtProvider.Connection.UserPublicKey = c.client.UserPublicKey
-	r.Status.AtProvider.Connection.AccountPublicKey = c.client.AccountPublicKey
+	r.Status.AtProvider.Connection.Address = client.Address
+	r.Status.AtProvider.Connection.UserPublicKey = client.UserPublicKey
+	r.Status.AtProvider.Connection.AccountPublicKey = client.AccountPublicKey
 
 	// Update status information for stream info
 	r.Status.AtProvider.State.Bytes = humanize.Bytes(data.State.Bytes)
@@ -205,6 +193,13 @@ func (c *external) setStatus(domain string, r *v1alpha1.Stream, data *natsgo.Str
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+	client, err := nats.NewClient(c.creds)
+	if err != nil {
+		return managed.ExternalObservation{}, err
+	}
+	defer func() {
+		client.Disconnect()
+	}()
 	r, ok := mg.(*v1alpha1.Stream)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotStream)
@@ -216,7 +211,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 
 	domain := r.Spec.ForProvider.Domain
 
-	data, err := nats.StreamInfo(c.client, domain, externalName)
+	data, err := nats.StreamInfo(client, domain, externalName)
 	if err != nil {
 		r.SetConditions(xpv1.Unavailable().WithMessage(err.Error()))
 		return managed.ExternalObservation{}, err
@@ -256,7 +251,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		}, nil
 	}
 
-	err = c.setStatus(domain, r, data)
+	err = c.setStatus(client, domain, r, data)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -281,6 +276,13 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 }
 
 func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
+	client, err := nats.NewClient(c.creds)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
+	defer func() {
+		client.Disconnect()
+	}()
 	r, ok := mg.(*v1alpha1.Stream)
 	if !ok {
 		return managed.ExternalCreation{}, errors.New(errNotStream)
@@ -299,7 +301,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	}
 	config.Name = externalName
 
-	err = c.client.CreateStream(domain, config)
+	err = client.CreateStream(domain, config)
 	if err != nil {
 		return managed.ExternalCreation{}, err
 	}
@@ -312,6 +314,13 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
+	client, err := nats.NewClient(c.creds)
+	if err != nil {
+		return managed.ExternalUpdate{}, err
+	}
+	defer func() {
+		client.Disconnect()
+	}()
 	r, ok := mg.(*v1alpha1.Stream)
 	if !ok {
 		return managed.ExternalUpdate{}, errors.New(errNotStream)
@@ -328,7 +337,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, err
 	}
 	config.Name = externalName
-	err = c.client.UpdateStream(domain, config)
+	err = client.UpdateStream(domain, config)
 	if err != nil {
 		return managed.ExternalUpdate{}, err
 	}
@@ -341,6 +350,13 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 }
 
 func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
+	client, err := nats.NewClient(c.creds)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		client.Disconnect()
+	}()
 	r, ok := mg.(*v1alpha1.Stream)
 	if !ok {
 		return errors.New(errNotStream)
@@ -352,5 +368,5 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return err
 	}
 
-	return c.client.DeleteStream(domain, externalName)
+	return client.DeleteStream(domain, externalName)
 }
