@@ -74,7 +74,6 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	r := managed.NewReconciler(mgr,
 		resource.ManagedKind(v1alpha1.StreamGroupVersionKind),
 		managed.WithExternalConnecter(connector),
-		managed.WithExternalConnectDisconnecter(connector),
 		managed.WithLogger(o.Logger.WithValues("controller", name)),
 		managed.WithPollInterval(o.PollInterval),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
@@ -95,11 +94,6 @@ type connector struct {
 	newServiceFn func(creds []byte) (*nats.Client, error)
 	client       *nats.Client
 	logger       logging.Logger
-}
-
-// Disconnect implements managed.ExternalConnectDisconnecter
-func (c *connector) Disconnect(ctx context.Context) error {
-	return c.client.Disconnect()
 }
 
 // Connect typically produces an ExternalClient by:
@@ -151,10 +145,6 @@ type external struct {
 	client          *nats.Client
 	clientCloseChan chan struct{}
 	log             logging.Logger
-}
-
-func (c *external) Disconnect(ctx context.Context) error {
-	return c.client.Disconnect()
 }
 
 const (
