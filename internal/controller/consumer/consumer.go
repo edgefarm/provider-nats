@@ -49,8 +49,6 @@ const (
 	errTrackPCUsage = "cannot track ProviderConfig usage"
 	errGetPC        = "cannot get ProviderConfig"
 	errGetCreds     = "cannot get credentials"
-
-	errNewClient = "cannot create new Service"
 )
 
 // Setup adds a controller that reconciles Consumer managed resources.
@@ -143,7 +141,7 @@ func getExternalName(r *v1alpha1.Consumer) (string, error) {
 			return val, nil
 		}
 	}
-	return "", fmt.Errorf("External name annotation not found for stream %s", r.GetName())
+	return "", fmt.Errorf("external name annotation not found for stream %s", r.GetName())
 }
 
 func (c *external) setStatus(domain string, stream string, r *v1alpha1.Consumer, data *natsgo.ConsumerInfo) {

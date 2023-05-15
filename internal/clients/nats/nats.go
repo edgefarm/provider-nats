@@ -66,7 +66,6 @@ func NewClient(creds []byte) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) Disconnect() error {
+func (c *Client) Disconnect() {
 	c.conn.Close()
-	return nil
 }

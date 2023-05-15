@@ -52,8 +52,6 @@ const (
 	errTrackPCUsage = "cannot track ProviderConfig usage"
 	errGetPC        = "cannot get ProviderConfig"
 	errGetCreds     = "cannot get credentials"
-
-	errNewClient = "cannot create new Service"
 )
 
 // Setup adds a controller that reconciles Stream managed resources.
@@ -146,7 +144,7 @@ func getExternalName(r *v1alpha1.Stream) (string, error) {
 			return val, nil
 		}
 	}
-	return "", fmt.Errorf("External name annotation not found for stream %s", r.GetName())
+	return "", fmt.Errorf("external name annotation not found for stream %s", r.GetName())
 }
 
 func (c *external) setStatus(client *nats.Client, domain string, r *v1alpha1.Stream, data *natsgo.StreamInfo) error {
