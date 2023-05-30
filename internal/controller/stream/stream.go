@@ -64,9 +64,8 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	}
 
 	connector := &connector{
-		kube:  mgr.GetClient(),
-		usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-		// newServiceFn: nats.NewClient,
+		kube:   mgr.GetClient(),
+		usage:  resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 		logger: o.Logger,
 	}
 	r := managed.NewReconciler(mgr,
