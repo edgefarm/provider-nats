@@ -6,6 +6,17 @@ PROJECT_REPO := github.com/edgefarm/$(PROJECT_NAME)
 PLATFORMS ?= linux_amd64 linux_arm64
 -include build/makelib/common.mk
 
+# ====================================================================================
+# Setup Helm
+
+USE_HELM3 = true
+HELM3_VERSION = v3.11.1
+HELM_OCI_URL = ghcr.io/edgefarm/provider-nats
+HELM_CHARTS = provider-nats-helm
+
+-include build/makelib/k8s_tools.mk
+-include makelib/helmoci.mk
+
 # Setup Output
 -include build/makelib/output.mk
 
